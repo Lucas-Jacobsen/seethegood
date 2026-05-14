@@ -3,7 +3,7 @@ import './App.css';
 import bannerImage from './assets/SeeTheGoodBanner.png';
 import scrollImage from './assets/SeeTheGoodScroll.png';
 
-const API_BASE_URL = 'http://localhost:3001'
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001';
 
 const features = [
   { title: 'Uplifting', description: 'Good stories' },
