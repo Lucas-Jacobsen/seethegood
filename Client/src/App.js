@@ -11,6 +11,66 @@ const features = [
   { title: 'Feel-Good', description: 'Positivity, always' },
 ];
 
+const staticPages = {
+  '#/privacy': {
+    eyebrow: 'Privacy',
+    title: 'Privacy Policy',
+    description: 'A placeholder privacy policy for See the Good.',
+    sections: [
+      {
+        heading: 'Overview',
+        body: 'This page will explain what information See the Good collects, how it is used, and how subscribers can manage their information.',
+      },
+      {
+        heading: 'Email subscriptions',
+        body: 'This section will describe how email addresses are stored and used for newsletter delivery.',
+      },
+      {
+        heading: 'Your choices',
+        body: 'This section will explain how subscribers can unsubscribe or contact See the Good with privacy questions.',
+      },
+    ],
+  },
+  '#/terms': {
+    eyebrow: 'Terms',
+    title: 'Terms of Use',
+    description: 'A placeholder terms page for See the Good.',
+    sections: [
+      {
+        heading: 'Use of the site',
+        body: 'This section will describe the basic terms for using the See the Good website and newsletter.',
+      },
+      {
+        heading: 'Content',
+        body: 'This section will explain ownership, permitted use, and any limitations around newsletter content.',
+      },
+      {
+        heading: 'Changes',
+        body: 'This section will explain that these terms may be updated as the project grows.',
+      },
+    ],
+  },
+  '#/contact': {
+    eyebrow: 'Contact',
+    title: 'Contact',
+    description: 'A placeholder contact page for See the Good.',
+    sections: [
+      {
+        heading: 'General contact',
+        body: 'This section can include your preferred contact email or a future contact form.',
+      },
+      {
+        heading: 'Story ideas',
+        body: 'This section can explain how readers can send positive stories, links, or recommendations for future issues.',
+      },
+      {
+        heading: 'Partnerships',
+        body: 'This section can be used later for collaborations, sponsorships, or media inquiries.',
+      },
+    ],
+  },
+};
+
 function LogoMark({ className = '' }) {
   return (
     <svg className={`logo-mark ${className}`} viewBox="0 0 64 64" aria-hidden="true">
@@ -72,7 +132,30 @@ function renderMarkdown(markdown) {
     });
 }
 
+function StaticPage({ page }) {
+  return (
+    <section className="static-page">
+      <div className="static-card">
+        <p className="eyebrow">{page.eyebrow}</p>
+        <h1>{page.title}</h1>
+        <p className="static-description">{page.description}</p>
+
+        <div className="static-sections">
+          {page.sections.map((section) => (
+            <section className="static-section" key={section.heading}>
+              <h2>{section.heading}</h2>
+              <p>{section.body}</p>
+            </section>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function App() {
+  const [currentRoute, setCurrentRoute] = useState(window.location.hash || '#/');
+
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [formMessage, setFormMessage] = useState('');
@@ -87,6 +170,9 @@ function App() {
   const [selectedIssueError, setSelectedIssueError] = useState('');
 
   const displayedIssues = issues.slice(0, 2);
+  const isIssuesArchiveRoute = currentRoute === '#/issues';
+  const currentStaticPage = staticPages[currentRoute];
+  const isHomeRoute = !isIssuesArchiveRoute && !currentStaticPage;
 
   useEffect(() => {
     let frameId = null;
@@ -149,6 +235,27 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const handleHashChange = () => {
+      setCurrentRoute(window.location.hash || '#/');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (currentStaticPage) {
+      setSelectedIssue(null);
+      setSelectedIssueError('');
+      setSelectedIssueLoading(false);
+    }
+  }, [currentRoute, currentStaticPage]);
+
   const handleIssueOpen = async (slug) => {
     setSelectedIssueLoading(true);
     setSelectedIssueError('');
@@ -175,6 +282,17 @@ function App() {
     } finally {
       setSelectedIssueLoading(false);
     }
+  };
+
+  const handleIssueClose = () => {
+    setSelectedIssue(null);
+    setSelectedIssueError('');
+    setSelectedIssueLoading(false);
+
+    document.getElementById('issues')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
   };
 
   const handleSubmit = async (event) => {
@@ -219,10 +337,76 @@ function App() {
     }
   };
 
+  const renderIssueReader = () => (
+    <section className="issue-reader" id="issue-reader" aria-live="polite">
+      {selectedIssueLoading && (
+        <p className="issue-reader-status">Loading issue...</p>
+      )}
+
+      {selectedIssueError && (
+        <p className="error-message">{selectedIssueError}</p>
+      )}
+
+      {selectedIssue && (
+        <article className="issue-reader-card">
+          <button
+            className="issue-reader-close"
+            type="button"
+            onClick={handleIssueClose}
+            aria-label="Close issue"
+          >
+            ×
+          </button>
+
+          <p className="issue-reader-label">
+            {getIssueLabel(selectedIssue)}
+          </p>
+
+          <h2>{selectedIssue.title}</h2>
+
+          <p className="issue-reader-excerpt">{selectedIssue.excerpt}</p>
+
+          <div className="issue-reader-body">
+            {selectedIssue.bodyHtml ? (
+              <div dangerouslySetInnerHTML={{ __html: selectedIssue.bodyHtml }} />
+            ) : (
+              renderMarkdown(selectedIssue.bodyMarkdown)
+            )}
+          </div>
+        </article>
+      )}
+    </section>
+  );
+
+  const renderIssueCard = (issue) => (
+    <article className="issue-card" key={issue.id || issue.slug}>
+      <div
+        className="issue-image"
+        style={{ backgroundImage: `url(${issue.coverImageUrl || bannerImage})` }}
+        aria-hidden="true"
+      />
+
+      <div>
+        <p>{getIssueLabel(issue)}</p>
+        <h2>{issue.title}</h2>
+        <span>{issue.excerpt}</span>
+      </div>
+
+      <button
+        className="issue-link"
+        type="button"
+        onClick={() => handleIssueOpen(issue.slug)}
+        aria-label={`Read ${issue.title}`}
+      >
+        →
+      </button>
+    </article>
+  );
+
   return (
     <main className="site-shell">
       <header className="site-header" aria-label="Main navigation">
-        <a className="brand" href="#top" aria-label="See the Good home">
+        <a className="brand" href="#/" aria-label="See the Good home">
           <LogoMark />
           <span>See the Good</span>
         </a>
@@ -230,232 +414,237 @@ function App() {
         <nav className="nav-links" aria-label="Site links">
           <a href="#issues">Issues</a>
           <a href="#about">About</a>
-          <a href="#archive">Archive</a>
+          <a href="#/issues">Archive</a>
           <a className="nav-button" href="#subscribe">Subscribe</a>
         </nav>
       </header>
 
-      <section className="hero-section" id="top">
-        <div className="hero-copy">
-          <p className="eyebrow">A positivity newsletter, delivered weekly.</p>
+      {isIssuesArchiveRoute && (
+        <section className="archive-page">
+          <div className="archive-heading">
+            <p className="eyebrow">Archive</p>
+            <h1>All Issues</h1>
+            <p>Browse every published See the Good issue.</p>
+          </div>
 
-          <h1>
-            A little more <span>good.</span>
-          </h1>
-
-          <p className="hero-summary">
-            Good news, thoughtful stories, and small reminders to notice what is going right.
-          </p>
-
-          <form className="signup-form hero-form" onSubmit={handleSubmit}>
-            <label className="sr-only" htmlFor="hero-email">
-              Email address
-            </label>
-
-            <input
-              id="hero-email"
-              type="email"
-              placeholder="Your email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
-
-            <button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Signing up...' : 'Sign up'}
-            </button>
-          </form>
-
-          <p className="privacy-note">No spam. Unsubscribe anytime.</p>
-
-          {formMessage && (
-            <p className={submitted ? 'success-message' : 'error-message'}>
-              {formMessage}
-            </p>
+          {issuesLoading && (
+            <p className="issue-reader-status">Loading issues...</p>
           )}
-        </div>
 
-        <div className="hero-art" aria-hidden="true">
-          <div className="hero-sun" />
-          <div className="hero-cloud hero-cloud-one" />
-          <div className="hero-cloud hero-cloud-two" />
-          <div className="hero-hill hero-hill-back" />
-          <div className="hero-hill hero-hill-front" />
-          <div className="hero-path" />
-          <div className="hero-leaf hero-leaf-one" />
-          <div className="hero-leaf hero-leaf-two" />
-          <div className="hero-flower hero-flower-one" />
-          <div className="hero-flower hero-flower-two" />
-        </div>
-      </section>
+          {!issuesLoading && issuesError && (
+            <p className="error-message">{issuesError}</p>
+          )}
 
-      <section className="feature-row" id="about" aria-label="Newsletter benefits">
-        {features.map((feature) => (
-          <article className="feature-card" key={feature.title}>
-            <div className="feature-icon" aria-hidden="true">
-              {feature.title === 'Uplifting' && <span>☀</span>}
-              {feature.title === 'Meaningful' && <span>♥</span>}
-              {feature.title === 'Feel-Good' && <span>☕</span>}
+          {!issuesLoading && !issuesError && issues.length === 0 && (
+            <p className="issue-reader-status">No published issues yet.</p>
+          )}
+
+          {!issuesLoading && !issuesError && issues.length > 0 && (
+            <div className="archive-grid">
+              {issues.map((issue) => renderIssueCard(issue))}
             </div>
+          )}
 
-            <h2>{feature.title}</h2>
-            <p>{feature.description}</p>
-          </article>
-        ))}
-      </section>
-
-      <section className="scroll-story" aria-label="See the Good scroll animation">
-        <p>Good is worth noticing.</p>
-
-        <div
-          className="scroll-mask"
-          style={{ backgroundImage: `url(${scrollImage})` }}
-        >
-          See the Good
-        </div>
-      </section>
-
-      <section className="issue-section" id="issues" aria-label="Recent issues">
-        {issuesLoading && (
-          <article className="issue-card">
-            <div
-              className="issue-image"
-              style={{ backgroundImage: `url(${bannerImage})` }}
-              aria-hidden="true"
-            />
-
-            <div>
-              <p>Loading</p>
-              <h2>Finding Good</h2>
-              <span>Loading recent issues...</span>
-            </div>
-
-            <button className="issue-link" type="button" disabled aria-label="Loading issues">
-              →
-            </button>
-          </article>
-        )}
-
-        {!issuesLoading && issuesError && (
-          <article className="issue-card">
-            <div
-              className="issue-image"
-              style={{ backgroundImage: `url(${bannerImage})` }}
-              aria-hidden="true"
-            />
-
-            <div>
-              <p>Issues</p>
-              <h2>Try Again Soon</h2>
-              <span>{issuesError}</span>
-            </div>
-
-            <button className="issue-link" type="button" disabled aria-label="Issues unavailable">
-              →
-            </button>
-          </article>
-        )}
-
-        {!issuesLoading && !issuesError && issues.length === 0 && (
-          <article className="issue-card">
-            <div
-              className="issue-image"
-              style={{ backgroundImage: `url(${bannerImage})` }}
-              aria-hidden="true"
-            />
-
-            <div>
-              <p>Coming Soon</p>
-              <h2>First Issue</h2>
-              <span>The first See the Good issue is on the way.</span>
-            </div>
-
-            <a href="#subscribe" aria-label="Subscribe for the first issue">
-              →
+          <div className="archive-back-wrap">
+            <a className="issue-archive-link" href="#/">
+              Back home
             </a>
-          </article>
-        )}
+          </div>
 
-        {!issuesLoading && !issuesError && displayedIssues.map((issue) => (
-          <article className="issue-card" key={issue.id || issue.slug}>
-            <div
-              className="issue-image"
-              style={{ backgroundImage: `url(${issue.coverImageUrl || bannerImage})` }}
-              aria-hidden="true"
-            />
+          {renderIssueReader()}
+        </section>
+      )}
 
-            <div>
-              <p>{getIssueLabel(issue)}</p>
-              <h2>{issue.title}</h2>
-              <span>{issue.excerpt}</span>
+      {currentStaticPage && (
+        <StaticPage page={currentStaticPage} />
+      )}
+
+      {isHomeRoute && (
+        <>
+          <section className="hero-section" id="top">
+            <div className="hero-copy">
+              <p className="eyebrow">A positivity newsletter, delivered weekly.</p>
+
+              <h1>
+                A little more <span>good.</span>
+              </h1>
+
+              <p className="hero-summary">
+                Good news, thoughtful stories, and small reminders to notice what is going right.
+              </p>
+
+              <form className="signup-form hero-form" onSubmit={handleSubmit}>
+                <label className="sr-only" htmlFor="hero-email">
+                  Email address
+                </label>
+
+                <input
+                  id="hero-email"
+                  type="email"
+                  placeholder="Your email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                />
+
+                <button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Signing up...' : 'Sign up'}
+                </button>
+              </form>
+
+              <p className="privacy-note">No spam. Unsubscribe anytime.</p>
+
+              {formMessage && (
+                <p className={submitted ? 'success-message' : 'error-message'}>
+                  {formMessage}
+                </p>
+              )}
             </div>
 
-            <button
-              className="issue-link"
-              type="button"
-              onClick={() => handleIssueOpen(issue.slug)}
-              aria-label={`Read ${issue.title}`}
+            <div className="hero-art" aria-hidden="true">
+              <div className="hero-sun" />
+              <div className="hero-cloud hero-cloud-one" />
+              <div className="hero-cloud hero-cloud-two" />
+              <div className="hero-hill hero-hill-back" />
+              <div className="hero-hill hero-hill-front" />
+              <div className="hero-path" />
+              <div className="hero-leaf hero-leaf-one" />
+              <div className="hero-leaf hero-leaf-two" />
+              <div className="hero-flower hero-flower-one" />
+              <div className="hero-flower hero-flower-two" />
+            </div>
+          </section>
+
+          <section className="feature-row" id="about" aria-label="Newsletter benefits">
+            {features.map((feature) => (
+              <article className="feature-card" key={feature.title}>
+                <div className="feature-icon" aria-hidden="true">
+                  {feature.title === 'Uplifting' && <span>☀</span>}
+                  {feature.title === 'Meaningful' && <span>♥</span>}
+                  {feature.title === 'Feel-Good' && <span>☕</span>}
+                </div>
+
+                <h2>{feature.title}</h2>
+                <p>{feature.description}</p>
+              </article>
+            ))}
+          </section>
+
+          <section className="scroll-story" aria-label="See the Good scroll animation">
+            <p>Good is worth noticing.</p>
+
+            <div
+              className="scroll-mask"
+              style={{ backgroundImage: `url(${scrollImage})` }}
             >
-              →
-            </button>
-          </article>
-        ))}
-      </section>
+              See the Good
+            </div>
+          </section>
 
-      <section className="issue-reader" id="issue-reader" aria-live="polite">
-        {selectedIssueLoading && (
-          <p className="issue-reader-status">Loading issue...</p>
-        )}
+          <section className="issue-section" id="issues" aria-label="Recent issues">
+            {issuesLoading && (
+              <article className="issue-card">
+                <div
+                  className="issue-image"
+                  style={{ backgroundImage: `url(${bannerImage})` }}
+                  aria-hidden="true"
+                />
 
-        {selectedIssueError && (
-          <p className="error-message">{selectedIssueError}</p>
-        )}
+                <div>
+                  <p>Loading</p>
+                  <h2>Finding Good</h2>
+                  <span>Loading recent issues...</span>
+                </div>
 
-       {selectedIssue && (
-  <article className="issue-reader-card">
-    <p className="issue-reader-label">
-      {getIssueLabel(selectedIssue)}
-    </p>
+                <button className="issue-link" type="button" disabled aria-label="Loading issues">
+                  →
+                </button>
+              </article>
+            )}
 
-    <h2>{selectedIssue.title}</h2>
+            {!issuesLoading && issuesError && (
+              <article className="issue-card">
+                <div
+                  className="issue-image"
+                  style={{ backgroundImage: `url(${bannerImage})` }}
+                  aria-hidden="true"
+                />
 
-    <p className="issue-reader-excerpt">{selectedIssue.excerpt}</p>
+                <div>
+                  <p>Issues</p>
+                  <h2>Try Again Soon</h2>
+                  <span>{issuesError}</span>
+                </div>
 
-    <div className="issue-reader-body">
-      {renderMarkdown(selectedIssue.bodyMarkdown)}
-    </div>
-  </article>
-)}
-      </section>
+                <button className="issue-link" type="button" disabled aria-label="Issues unavailable">
+                  →
+                </button>
+              </article>
+            )}
 
-      <section className="closing-cta" id="subscribe">
-        <div>
-          <LogoMark className="small-logo" />
-          <h2>Let’s see more good.</h2>
-        </div>
+            {!issuesLoading && !issuesError && issues.length === 0 && (
+              <article className="issue-card">
+                <div
+                  className="issue-image"
+                  style={{ backgroundImage: `url(${bannerImage})` }}
+                  aria-hidden="true"
+                />
 
-        <form className="signup-form" onSubmit={handleSubmit}>
-          <label className="sr-only" htmlFor="footer-email">
-            Email address
-          </label>
+                <div>
+                  <p>Coming Soon</p>
+                  <h2>First Issue</h2>
+                  <span>The first See the Good issue is on the way.</span>
+                </div>
 
-          <input
-            id="footer-email"
-            type="email"
-            placeholder="Your email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-          />
+                <a href="#subscribe" aria-label="Subscribe for the first issue">
+                  →
+                </a>
+              </article>
+            )}
 
-          <button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Subscribing...' : 'Subscribe'}
-          </button>
-        </form>
-      </section>
+            {!issuesLoading && !issuesError && displayedIssues.map((issue) => renderIssueCard(issue))}
+          </section>
+
+          {issues.length > 2 && (
+            <div className="issue-archive-link-wrap">
+              <a className="issue-archive-link" href="#/issues">
+                See all issues
+              </a>
+            </div>
+          )}
+
+          {renderIssueReader()}
+
+          <section className="closing-cta" id="subscribe">
+            <div>
+              <LogoMark className="small-logo" />
+              <h2>Let’s see more good.</h2>
+            </div>
+
+            <form className="signup-form" onSubmit={handleSubmit}>
+              <label className="sr-only" htmlFor="footer-email">
+                Email address
+              </label>
+
+              <input
+                id="footer-email"
+                type="email"
+                placeholder="Your email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+              />
+
+              <button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Subscribing...' : 'Subscribe'}
+              </button>
+            </form>
+          </section>
+        </>
+      )}
 
       <footer className="site-footer" id="archive">
-        <a className="brand footer-brand" href="#top" aria-label="See the Good home">
+        <a className="brand footer-brand" href="#/" aria-label="See the Good home">
           <LogoMark />
           <span>See the Good</span>
         </a>
@@ -463,9 +652,9 @@ function App() {
         <p>© 2026 See the Good</p>
 
         <nav aria-label="Footer links">
-          <a href="#subscribe">Privacy</a>
-          <a href="#subscribe">Terms</a>
-          <a href="#subscribe">Contact</a>
+          <a href="#/privacy">Privacy</a>
+          <a href="#/terms">Terms</a>
+          <a href="#/contact">Contact</a>
         </nav>
       </footer>
     </main>
