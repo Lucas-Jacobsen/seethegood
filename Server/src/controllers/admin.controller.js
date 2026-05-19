@@ -2,14 +2,15 @@ import { createIssue } from '../services/admin.service.js';
 
 export async function createAdminIssue(req, res, next) {
   try {
-    const {
-      title,
-      slug,
-      excerpt,
-      bodyMarkdown,
-      status,
-      issueNumber,
-    } = req.body;
+   const {
+  title,
+  slug,
+  excerpt,
+  coverImageUrl,
+  bodyMarkdown,
+  status,
+  issueNumber,
+} = req.body;
 
     if (!title || !excerpt || !bodyMarkdown) {
       return res.status(400).json({
@@ -17,14 +18,15 @@ export async function createAdminIssue(req, res, next) {
       });
     }
 
-    const issue = await createIssue({
-      title,
-      slug,
-      excerpt,
-      bodyMarkdown,
-      status,
-      issueNumber,
-    });
+   const issue = await createIssue({
+  title,
+  slug,
+  excerpt,
+  coverImageUrl,
+  bodyMarkdown,
+  status,
+  issueNumber,
+});
 
     return res.status(201).json({
       message: 'Issue created successfully.',

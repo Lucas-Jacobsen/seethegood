@@ -55,20 +55,20 @@ function renderMarkdown(markdown) {
       const imageMatch = trimmedLine.match(/^!\[(.*?)\]\((.*?)\)$/);
 
       if (imageMatch) {
-  const [, altText, imageUrl] = imageMatch;
+        const [, altText, imageUrl] = imageMatch;
 
-  return (
-    <img
-      className="issue-reader-image"
-      key={index}
-      src={imageUrl}
-      alt={altText || 'Newsletter image'}
-      loading="lazy"
-    />
-  );
-}
+        return (
+          <img
+            className="issue-reader-image"
+            key={index}
+            src={imageUrl}
+            alt={altText || 'Newsletter image'}
+            loading="lazy"
+          />
+        );
+      }
 
-return <p key={index}>{trimmedLine}</p>;
+      return <p key={index}>{trimmedLine}</p>;
     });
 }
 
@@ -380,7 +380,7 @@ function App() {
           <article className="issue-card" key={issue.id || issue.slug}>
             <div
               className="issue-image"
-              style={{ backgroundImage: `url(${bannerImage})` }}
+              style={{ backgroundImage: `url(${issue.coverImageUrl || bannerImage})` }}
               aria-hidden="true"
             />
 
@@ -411,21 +411,21 @@ function App() {
           <p className="error-message">{selectedIssueError}</p>
         )}
 
-        {selectedIssue && (
-          <article className="issue-reader-card">
-            <p className="issue-reader-label">
-              {getIssueLabel(selectedIssue)}
-            </p>
+       {selectedIssue && (
+  <article className="issue-reader-card">
+    <p className="issue-reader-label">
+      {getIssueLabel(selectedIssue)}
+    </p>
 
-            <h2>{selectedIssue.title}</h2>
+    <h2>{selectedIssue.title}</h2>
 
-            <p className="issue-reader-excerpt">{selectedIssue.excerpt}</p>
+    <p className="issue-reader-excerpt">{selectedIssue.excerpt}</p>
 
-            <div className="issue-reader-body">
-              {renderMarkdown(selectedIssue.bodyMarkdown)}
-            </div>
-          </article>
-        )}
+    <div className="issue-reader-body">
+      {renderMarkdown(selectedIssue.bodyMarkdown)}
+    </div>
+  </article>
+)}
       </section>
 
       <section className="closing-cta" id="subscribe">

@@ -25,18 +25,19 @@ enum SubscriberStatus {
 }
 
 model Issue {
-  id          String      @id @default(uuid())
-  title       String
-  slug        String      @unique
-  excerpt     String
-  bodyMarkdown String
-  bodyHtml    String?
-  status      IssueStatus @default(DRAFT)
-  issueNumber Int?
-  publishedAt DateTime?
-  sentAt      DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id            String      @id @default(uuid())
+  title         String
+  slug          String      @unique
+  excerpt       String
+  coverImageUrl String?
+  bodyMarkdown  String
+  bodyHtml      String?
+  status        IssueStatus @default(DRAFT)
+  issueNumber   Int?
+  publishedAt   DateTime?
+  sentAt        DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 }
 
 enum IssueStatus {
