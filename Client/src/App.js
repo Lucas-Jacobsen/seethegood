@@ -5,11 +5,6 @@ import scrollImage from './assets/SeeTheGoodScroll.png';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001';
 
-const features = [
-  { title: 'Uplifting', description: 'Good stories' },
-  { title: 'Meaningful', description: 'Real impact' },
-  { title: 'Feel-Good', description: 'Positivity, always' },
-];
 
 const staticPages = {
   '#/privacy': {
@@ -414,7 +409,7 @@ function App() {
         <nav className="nav-links" aria-label="Site links">
           <a href="#issues">Issues</a>
           <a href="#about">About</a>
-          <a href="#/issues">Archive</a>
+          <a className="archive-nav-link" href="#/issues">Archive</a>
           <a className="nav-button" href="#subscribe">Subscribe</a>
         </nav>
       </header>
@@ -515,20 +510,7 @@ function App() {
             </div>
           </section>
 
-          <section className="feature-row" id="about" aria-label="Newsletter benefits">
-            {features.map((feature) => (
-              <article className="feature-card" key={feature.title}>
-                <div className="feature-icon" aria-hidden="true">
-                  {feature.title === 'Uplifting' && <span>☀</span>}
-                  {feature.title === 'Meaningful' && <span>♥</span>}
-                  {feature.title === 'Feel-Good' && <span>☕</span>}
-                </div>
-
-                <h2>{feature.title}</h2>
-                <p>{feature.description}</p>
-              </article>
-            ))}
-          </section>
+        
 
           <section className="scroll-story" aria-label="See the Good scroll animation">
             <p>Good is worth noticing.</p>

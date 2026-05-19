@@ -518,13 +518,14 @@ input {
 .issue-image {
   height: 128px;
   border-radius: 16px;
-  background-position: center;
+  background-position: center 28%;
   background-size: cover;
+  background-repeat: no-repeat;
   filter: saturate(0.9) sepia(0.1);
 }
 
 .issue-card:nth-child(2) .issue-image {
-  background-position: right center;
+  background-position: center;
 }
 
 .issue-card p {
@@ -731,9 +732,9 @@ input {
     padding: 22px 0;
   }
 
-  .nav-links a:not(.nav-button) {
-    display: none;
-  }
+  .nav-links a:not(.nav-button):not(.archive-nav-link) {
+  display: none;
+}
 
   .hero-section {
     grid-template-columns: 1fr;
