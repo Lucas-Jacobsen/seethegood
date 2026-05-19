@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import subscribeRoutes from './routes/subscribe.routes.js';
 import unsubscribeRoutes from './routes/unsubscribe.routes.js';
 import issueRoutes from './routes/issue.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/subscribe', subscribeRoutes);
 app.use('/api/unsubscribe', unsubscribeRoutes);
 app.use('/api/issues', issueRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

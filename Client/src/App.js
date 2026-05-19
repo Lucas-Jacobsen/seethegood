@@ -52,7 +52,23 @@ function renderMarkdown(markdown) {
         return <h4 key={index}>{trimmedLine.replace('## ', '')}</h4>;
       }
 
-      return <p key={index}>{trimmedLine}</p>;
+      const imageMatch = trimmedLine.match(/^!\[(.*?)\]\((.*?)\)$/);
+
+      if (imageMatch) {
+  const [, altText, imageUrl] = imageMatch;
+
+  return (
+    <img
+      className="issue-reader-image"
+      key={index}
+      src={imageUrl}
+      alt={altText || 'Newsletter image'}
+      loading="lazy"
+    />
+  );
+}
+
+return <p key={index}>{trimmedLine}</p>;
     });
 }
 
