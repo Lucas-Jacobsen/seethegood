@@ -33,6 +33,29 @@ function getIssueLabel(issue) {
   return 'Issue';
 }
 
+function renderMarkdown(markdown) {
+  if (!markdown) {
+    return null;
+  }
+
+  return markdown
+    .split('\n')
+    .filter((line) => line.trim())
+    .map((line, index) => {
+      const trimmedLine = line.trim();
+
+      if (trimmedLine.startsWith('# ')) {
+        return <h3 key={index}>{trimmedLine.replace('# ', '')}</h3>;
+      }
+
+      if (trimmedLine.startsWith('## ')) {
+        return <h4 key={index}>{trimmedLine.replace('## ', '')}</h4>;
+      }
+
+      return <p key={index}>{trimmedLine}</p>;
+    });
+}
+
 function App() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -42,6 +65,12 @@ function App() {
   const [issues, setIssues] = useState([]);
   const [issuesLoading, setIssuesLoading] = useState(true);
   const [issuesError, setIssuesError] = useState('');
+
+  const [selectedIssue, setSelectedIssue] = useState(null);
+  const [selectedIssueLoading, setSelectedIssueLoading] = useState(false);
+  const [selectedIssueError, setSelectedIssueError] = useState('');
+
+  const displayedIssues = issues.slice(0, 2);
 
   useEffect(() => {
     let frameId = null;
@@ -103,6 +132,34 @@ function App() {
       isMounted = false;
     };
   }, []);
+
+  const handleIssueOpen = async (slug) => {
+    setSelectedIssueLoading(true);
+    setSelectedIssueError('');
+    setSelectedIssue(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/issues/${slug}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Could not load issue.');
+      }
+
+      setSelectedIssue(data.issue);
+
+      setTimeout(() => {
+        document.getElementById('issue-reader')?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }, 50);
+    } catch (error) {
+      setSelectedIssueError('Could not load this issue.');
+    } finally {
+      setSelectedIssueLoading(false);
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -257,9 +314,9 @@ function App() {
               <span>Loading recent issues...</span>
             </div>
 
-            <a href="#issues" aria-label="Loading issues">
+            <button className="issue-link" type="button" disabled aria-label="Loading issues">
               →
-            </a>
+            </button>
           </article>
         )}
 
@@ -277,9 +334,9 @@ function App() {
               <span>{issuesError}</span>
             </div>
 
-            <a href="#issues" aria-label="Issues unavailable">
+            <button className="issue-link" type="button" disabled aria-label="Issues unavailable">
               →
-            </a>
+            </button>
           </article>
         )}
 
@@ -303,7 +360,7 @@ function App() {
           </article>
         )}
 
-        {!issuesLoading && !issuesError && issues.map((issue) => (
+        {!issuesLoading && !issuesError && displayedIssues.map((issue) => (
           <article className="issue-card" key={issue.id || issue.slug}>
             <div
               className="issue-image"
@@ -317,11 +374,42 @@ function App() {
               <span>{issue.excerpt}</span>
             </div>
 
-            <a href="#archive" aria-label={`${issue.title} issue`}>
+            <button
+              className="issue-link"
+              type="button"
+              onClick={() => handleIssueOpen(issue.slug)}
+              aria-label={`Read ${issue.title}`}
+            >
               →
-            </a>
+            </button>
           </article>
         ))}
+      </section>
+
+      <section className="issue-reader" id="issue-reader" aria-live="polite">
+        {selectedIssueLoading && (
+          <p className="issue-reader-status">Loading issue...</p>
+        )}
+
+        {selectedIssueError && (
+          <p className="error-message">{selectedIssueError}</p>
+        )}
+
+        {selectedIssue && (
+          <article className="issue-reader-card">
+            <p className="issue-reader-label">
+              {getIssueLabel(selectedIssue)}
+            </p>
+
+            <h2>{selectedIssue.title}</h2>
+
+            <p className="issue-reader-excerpt">{selectedIssue.excerpt}</p>
+
+            <div className="issue-reader-body">
+              {renderMarkdown(selectedIssue.bodyMarkdown)}
+            </div>
+          </article>
+        )}
       </section>
 
       <section className="closing-cta" id="subscribe">

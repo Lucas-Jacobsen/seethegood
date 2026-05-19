@@ -747,4 +747,77 @@ input {
     line-height: 0.9;
     white-space: normal;
   }
+
+  .issue-link {
+  border: 0;
+  background: transparent;
+  color: var(--coral);
+  cursor: pointer;
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.issue-reader {
+  width: min(900px, calc(100% - 40px));
+  margin: 0 auto clamp(70px, 10vw, 120px);
+}
+
+.issue-reader-status {
+  color: var(--muted);
+  text-align: center;
+}
+
+.issue-reader-card {
+  padding: clamp(28px, 5vw, 56px);
+  border-radius: var(--radius-large);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.issue-reader-label {
+  margin: 0 0 14px;
+  color: var(--coral);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.issue-reader-card h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.6rem, 7vw, 5rem);
+  line-height: 0.95;
+  letter-spacing: -0.07em;
+}
+
+.issue-reader-excerpt {
+  margin: 20px 0 34px;
+  color: var(--muted);
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  line-height: 1.7;
+}
+
+.issue-reader-body h3,
+.issue-reader-body h4 {
+  margin: 30px 0 12px;
+  font-family: Georgia, "Times New Roman", serif;
+  color: var(--ink);
+}
+
+.issue-reader-body h3 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  letter-spacing: -0.05em;
+}
+
+.issue-reader-body h4 {
+  font-size: clamp(1.4rem, 3vw, 2rem);
+}
+
+.issue-reader-body p {
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 1.04rem;
+  line-height: 1.8;
+}
 }
