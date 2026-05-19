@@ -11,11 +11,6 @@ const features = [
   { title: 'Feel-Good', description: 'Positivity, always' },
 ];
 
-const issueCards = [
-  { issue: 'Issue 52', title: 'Small Wins', label: 'This week' },
-  { issue: 'Issue 51', title: 'Notice More', label: 'Past issue' },
-];
-
 function LogoMark({ className = '' }) {
   return (
     <svg className={`logo-mark ${className}`} viewBox="0 0 64 64" aria-hidden="true">
@@ -30,11 +25,23 @@ function LogoMark({ className = '' }) {
   );
 }
 
+function getIssueLabel(issue) {
+  if (issue.issueNumber) {
+    return `Issue ${issue.issueNumber}`;
+  }
+
+  return 'Issue';
+}
+
 function App() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [formMessage, setFormMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [issues, setIssues] = useState([]);
+  const [issuesLoading, setIssuesLoading] = useState(true);
+  const [issuesError, setIssuesError] = useState('');
 
   useEffect(() => {
     let frameId = null;
@@ -60,6 +67,40 @@ function App() {
       if (frameId !== null) {
         window.cancelAnimationFrame(frameId);
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchIssues = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/issues`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Could not load issues.');
+        }
+
+        if (isMounted) {
+          setIssues(Array.isArray(data.issues) ? data.issues : []);
+          setIssuesError('');
+        }
+      } catch (error) {
+        if (isMounted) {
+          setIssuesError('Could not load issues.');
+        }
+      } finally {
+        if (isMounted) {
+          setIssuesLoading(false);
+        }
+      }
+    };
+
+    fetchIssues();
+
+    return () => {
+      isMounted = false;
     };
   }, []);
 
@@ -202,8 +243,8 @@ function App() {
       </section>
 
       <section className="issue-section" id="issues" aria-label="Recent issues">
-        {issueCards.map((card) => (
-          <article className="issue-card" key={card.issue}>
+        {issuesLoading && (
+          <article className="issue-card">
             <div
               className="issue-image"
               style={{ backgroundImage: `url(${bannerImage})` }}
@@ -211,12 +252,72 @@ function App() {
             />
 
             <div>
-              <p>{card.issue}</p>
-              <h2>{card.title}</h2>
-              <span>{card.label}</span>
+              <p>Loading</p>
+              <h2>Finding Good</h2>
+              <span>Loading recent issues...</span>
             </div>
 
-            <a href="#archive" aria-label={`${card.title} issue`}>
+            <a href="#issues" aria-label="Loading issues">
+              →
+            </a>
+          </article>
+        )}
+
+        {!issuesLoading && issuesError && (
+          <article className="issue-card">
+            <div
+              className="issue-image"
+              style={{ backgroundImage: `url(${bannerImage})` }}
+              aria-hidden="true"
+            />
+
+            <div>
+              <p>Issues</p>
+              <h2>Try Again Soon</h2>
+              <span>{issuesError}</span>
+            </div>
+
+            <a href="#issues" aria-label="Issues unavailable">
+              →
+            </a>
+          </article>
+        )}
+
+        {!issuesLoading && !issuesError && issues.length === 0 && (
+          <article className="issue-card">
+            <div
+              className="issue-image"
+              style={{ backgroundImage: `url(${bannerImage})` }}
+              aria-hidden="true"
+            />
+
+            <div>
+              <p>Coming Soon</p>
+              <h2>First Issue</h2>
+              <span>The first See the Good issue is on the way.</span>
+            </div>
+
+            <a href="#subscribe" aria-label="Subscribe for the first issue">
+              →
+            </a>
+          </article>
+        )}
+
+        {!issuesLoading && !issuesError && issues.map((issue) => (
+          <article className="issue-card" key={issue.id || issue.slug}>
+            <div
+              className="issue-image"
+              style={{ backgroundImage: `url(${bannerImage})` }}
+              aria-hidden="true"
+            />
+
+            <div>
+              <p>{getIssueLabel(issue)}</p>
+              <h2>{issue.title}</h2>
+              <span>{issue.excerpt}</span>
+            </div>
+
+            <a href="#archive" aria-label={`${issue.title} issue`}>
               →
             </a>
           </article>
