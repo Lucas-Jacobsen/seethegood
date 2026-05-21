@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/seethegood/static/css/main.34e74380.css",
-    "main.js": "/seethegood/static/js/main.0dd98923.js",
+    "main.js": "/seethegood/static/js/main.b3df8f3e.js",
     "static/media/SeeTheGoodScroll.png": "/seethegood/static/media/SeeTheGoodScroll.a515c5e341fba6befa3a.png",
     "static/media/SeeTheGoodBanner.png": "/seethegood/static/media/SeeTheGoodBanner.d979a9f0423ee1932393.png",
     "index.html": "/seethegood/index.html",
     "main.34e74380.css.map": "/seethegood/static/css/main.34e74380.css.map",
-    "main.0dd98923.js.map": "/seethegood/static/js/main.0dd98923.js.map"
+    "main.b3df8f3e.js.map": "/seethegood/static/js/main.b3df8f3e.js.map"
   },
   "entrypoints": [
     "static/css/main.34e74380.css",
-    "static/js/main.0dd98923.js"
+    "static/js/main.b3df8f3e.js"
   ]
 }
