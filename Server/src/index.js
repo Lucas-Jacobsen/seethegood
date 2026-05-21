@@ -6,6 +6,7 @@ import unsubscribeRoutes from './routes/unsubscribe.routes.js';
 import issueRoutes from './routes/issue.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import emailRoutes from './routes/email.routes.js';
+
 dotenv.config();
 
 const app = express();
