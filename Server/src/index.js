@@ -5,7 +5,7 @@ import subscribeRoutes from './routes/subscribe.routes.js';
 import unsubscribeRoutes from './routes/unsubscribe.routes.js';
 import issueRoutes from './routes/issue.routes.js';
 import adminRoutes from './routes/admin.routes.js';
-const emailRoutes = require("./routes/email.routes");
+const emailRoutes = require("./routes/email.routes.js");
 
 dotenv.config();
 
