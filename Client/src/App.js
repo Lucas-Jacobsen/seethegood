@@ -167,6 +167,8 @@ function AdminPage({ nextIssueNumber }) {
   const [adminError, setAdminError] = useState('');
   const [isSavingIssue, setIsSavingIssue] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
+
 
   const isEditing = Boolean(selectedIssueId);
 
@@ -340,7 +342,45 @@ function AdminPage({ nextIssueNumber }) {
       setIsSavingIssue(false);
     }
   };
+const handleSendTestIssueEmail = async () => {
+  setAdminMessage('');
+  setAdminError('');
 
+  if (!adminKey.trim()) {
+    setAdminError('Admin key is required to send a test email.');
+    return;
+  }
+
+  if (!selectedIssueId) {
+    setAdminError('Save or load an issue before sending a test email.');
+    return;
+  }
+
+  setIsSendingTestEmail(true);
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/email/test-issue/${selectedIssueId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-key': adminKey.trim(),
+      },
+      body: JSON.stringify({}),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Could not send test email.');
+    }
+
+    setAdminMessage(`Test email sent for: ${data.issue?.title || title}`);
+  } catch (error) {
+    setAdminError(error.message || 'Could not send test email.');
+  } finally {
+    setIsSendingTestEmail(false);
+  }
+};
   return (
     <section className="admin-page">
       <div className="admin-card">
@@ -467,21 +507,30 @@ function AdminPage({ nextIssueNumber }) {
             />
           </label>
 
-          <div className="admin-action-row">
-            <button type="submit" disabled={isSavingIssue}>
-              {isSavingIssue
-                ? isEditing ? 'Updating...' : 'Creating...'
-                : isEditing ? 'Update Issue' : 'Create Issue'}
-            </button>
+         <div className="admin-action-row">
+  <button type="submit" disabled={isSavingIssue}>
+    {isSavingIssue
+      ? isEditing ? 'Updating...' : 'Creating...'
+      : isEditing ? 'Update Issue' : 'Create Issue'}
+  </button>
 
-            <button
-              className="admin-secondary-button"
-              type="button"
-              onClick={() => setShowPreview((current) => !current)}
-            >
-              {showPreview ? 'Hide Preview' : 'Preview Issue'}
-            </button>
-          </div>
+  <button
+    className="admin-secondary-button"
+    type="button"
+    onClick={() => setShowPreview((current) => !current)}
+  >
+    {showPreview ? 'Hide Preview' : 'Preview Issue'}
+  </button>
+
+  <button
+    className="admin-secondary-button"
+    type="button"
+    onClick={handleSendTestIssueEmail}
+    disabled={isSendingTestEmail || !selectedIssueId}
+  >
+    {isSendingTestEmail ? 'Sending Test...' : 'Send Test Email'}
+  </button>
+</div>
         </form>
 
         {adminMessage && <p className="success-message">{adminMessage}</p>}
