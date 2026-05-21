@@ -148,6 +148,336 @@ function StaticPage({ page }) {
   );
 }
 
+function AdminPage({ nextIssueNumber }) {
+  const [adminKey, setAdminKey] = useState('');
+  const [selectedIssueId, setSelectedIssueId] = useState('');
+
+  const [title, setTitle] = useState('');
+  const [slug, setSlug] = useState('');
+  const [issueNumber, setIssueNumber] = useState('');
+  const [excerpt, setExcerpt] = useState('');
+  const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [status, setStatus] = useState('DRAFT');
+  const [bodyHtml, setBodyHtml] = useState('');
+
+  const [drafts, setDrafts] = useState([]);
+  const [draftsLoading, setDraftsLoading] = useState(false);
+
+  const [adminMessage, setAdminMessage] = useState('');
+  const [adminError, setAdminError] = useState('');
+  const [isSavingIssue, setIsSavingIssue] = useState(false);
+
+  const isEditing = Boolean(selectedIssueId);
+
+  useEffect(() => {
+    if (!issueNumber && nextIssueNumber && !isEditing) {
+      setIssueNumber(String(nextIssueNumber));
+    }
+  }, [nextIssueNumber, issueNumber, isEditing]);
+
+  const resetForm = () => {
+    setSelectedIssueId('');
+    setTitle('');
+    setSlug('');
+    setIssueNumber(nextIssueNumber ? String(nextIssueNumber) : '');
+    setExcerpt('');
+    setCoverImageUrl('');
+    setStatus('DRAFT');
+    setBodyHtml('');
+    setAdminMessage('');
+    setAdminError('');
+  };
+
+  const loadDrafts = async () => {
+    setAdminMessage('');
+    setAdminError('');
+
+    if (!adminKey.trim()) {
+      setAdminError('Admin key is required to load drafts.');
+      return;
+    }
+
+    setDraftsLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/issues?status=DRAFT`, {
+        method: 'GET',
+        headers: {
+          'x-admin-key': adminKey.trim(),
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Could not load drafts.');
+      }
+
+      setDrafts(Array.isArray(data.issues) ? data.issues : []);
+      setAdminMessage('Drafts loaded.');
+    } catch (error) {
+      setAdminError(error.message || 'Could not load drafts.');
+    } finally {
+      setDraftsLoading(false);
+    }
+  };
+
+  const loadIssueIntoForm = async (issueId) => {
+    setAdminMessage('');
+    setAdminError('');
+
+    if (!adminKey.trim()) {
+      setAdminError('Admin key is required to load an issue.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/issues/${issueId}`, {
+        method: 'GET',
+        headers: {
+          'x-admin-key': adminKey.trim(),
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Could not load issue.');
+      }
+
+      const issue = data.issue;
+
+      setSelectedIssueId(issue.id);
+      setTitle(issue.title || '');
+      setSlug(issue.slug || '');
+      setIssueNumber(issue.issueNumber ? String(issue.issueNumber) : '');
+      setExcerpt(issue.excerpt || '');
+      setCoverImageUrl(issue.coverImageUrl || '');
+      setStatus(issue.status || 'DRAFT');
+      setBodyHtml(issue.bodyHtml || '');
+      setAdminMessage(`Loaded draft: ${issue.title}`);
+    } catch (error) {
+      setAdminError(error.message || 'Could not load issue.');
+    }
+  };
+
+  const handleSaveIssue = async (event) => {
+    event.preventDefault();
+
+    setAdminMessage('');
+    setAdminError('');
+
+    if (!adminKey.trim()) {
+      setAdminError('Admin key is required.');
+      return;
+    }
+
+    if (!title.trim() || !excerpt.trim() || !bodyHtml.trim()) {
+      setAdminError('Title, excerpt, and body HTML are required.');
+      return;
+    }
+
+    setIsSavingIssue(true);
+
+    const issuePayload = {
+      title,
+      slug,
+      issueNumber,
+      excerpt,
+      coverImageUrl,
+      status,
+      bodyHtml,
+    };
+
+    try {
+      const response = await fetch(
+        isEditing
+          ? `${API_BASE_URL}/api/admin/issues/${selectedIssueId}`
+          : `${API_BASE_URL}/api/admin/issues`,
+        {
+          method: isEditing ? 'PUT' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-key': adminKey.trim(),
+          },
+          body: JSON.stringify(issuePayload),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Could not save issue.');
+      }
+
+      setAdminMessage(
+        isEditing
+          ? `Updated issue: ${data.issue.title}`
+          : `Created issue: ${data.issue.title}`
+      );
+
+      if (!isEditing) {
+        resetForm();
+      } else {
+        setTitle(data.issue.title || '');
+        setSlug(data.issue.slug || '');
+        setIssueNumber(data.issue.issueNumber ? String(data.issue.issueNumber) : '');
+        setExcerpt(data.issue.excerpt || '');
+        setCoverImageUrl(data.issue.coverImageUrl || '');
+        setStatus(data.issue.status || 'DRAFT');
+        setBodyHtml(data.issue.bodyHtml || '');
+      }
+
+      if (status === 'DRAFT') {
+        await loadDrafts();
+      }
+    } catch (error) {
+      setAdminError(error.message || 'Could not save issue.');
+    } finally {
+      setIsSavingIssue(false);
+    }
+  };
+
+  return (
+    <section className="admin-page">
+      <div className="admin-card">
+        <p className="eyebrow">Admin</p>
+        <h1>{isEditing ? 'Edit Draft' : 'Create Issue'}</h1>
+        <p className="admin-description">
+          Create a draft or published See the Good issue. Load drafts to continue editing before publishing.
+        </p>
+
+        <div className="admin-draft-tools">
+          <label>
+            Admin Key
+            <input
+              type="password"
+              value={adminKey}
+              onChange={(event) => setAdminKey(event.target.value)}
+              placeholder="Enter admin key"
+              autoComplete="off"
+            />
+          </label>
+
+          <div className="admin-draft-actions">
+            <button type="button" onClick={loadDrafts} disabled={draftsLoading}>
+              {draftsLoading ? 'Loading Drafts...' : 'Load Drafts'}
+            </button>
+
+            <button type="button" onClick={resetForm}>
+              New Issue
+            </button>
+          </div>
+
+          {drafts.length > 0 && (
+            <div className="admin-draft-list">
+              <p>Drafts</p>
+
+              <div className="admin-draft-buttons">
+                {drafts.map((draft) => (
+                  <button
+                    type="button"
+                    key={draft.id}
+                    onClick={() => loadIssueIntoForm(draft.id)}
+                    className={selectedIssueId === draft.id ? 'active-draft' : ''}
+                  >
+                    {draft.issueNumber ? `Issue ${draft.issueNumber}: ` : ''}
+                    {draft.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <form className="admin-form" onSubmit={handleSaveIssue}>
+          <div className="admin-form-grid">
+            <label>
+              Title
+              <input
+                type="text"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="What See the Good Is"
+              />
+            </label>
+
+            <label>
+              Slug
+              <input
+                type="text"
+                value={slug}
+                onChange={(event) => setSlug(event.target.value)}
+                placeholder="what-see-the-good-is"
+              />
+            </label>
+          </div>
+
+          <div className="admin-form-grid">
+            <label>
+              Issue Number
+              <input
+                type="number"
+                value={issueNumber}
+                onChange={(event) => setIssueNumber(event.target.value)}
+                placeholder={nextIssueNumber ? String(nextIssueNumber) : 'Next issue number'}
+              />
+            </label>
+
+            <label>
+              Status
+              <select value={status} onChange={(event) => setStatus(event.target.value)}>
+                <option value="DRAFT">Draft</option>
+                <option value="PUBLISHED">Published</option>
+              </select>
+            </label>
+          </div>
+
+          <label>
+            Excerpt
+            <textarea
+              value={excerpt}
+              onChange={(event) => setExcerpt(event.target.value)}
+              placeholder="A short summary that appears on the issue card."
+              rows={3}
+            />
+          </label>
+
+          <label>
+            Cover Image URL
+            <input
+              type="url"
+              value={coverImageUrl}
+              onChange={(event) => setCoverImageUrl(event.target.value)}
+              placeholder="https://images.unsplash.com/..."
+            />
+          </label>
+
+          <label>
+            Body HTML
+            <textarea
+              className="admin-html-editor"
+              value={bodyHtml}
+              onChange={(event) => setBodyHtml(event.target.value)}
+              placeholder="<p>Your newsletter body...</p>"
+              rows={16}
+            />
+          </label>
+
+          <button type="submit" disabled={isSavingIssue}>
+            {isSavingIssue
+              ? isEditing ? 'Updating...' : 'Creating...'
+              : isEditing ? 'Update Issue' : 'Create Issue'}
+          </button>
+        </form>
+
+        {adminMessage && <p className="success-message">{adminMessage}</p>}
+        {adminError && <p className="error-message">{adminError}</p>}
+      </div>
+    </section>
+  );
+}
+
 function App() {
   const [currentRoute, setCurrentRoute] = useState(window.location.hash || '#/');
 
@@ -167,7 +497,14 @@ function App() {
   const displayedIssues = issues.slice(0, 2);
   const isIssuesArchiveRoute = currentRoute === '#/issues';
   const currentStaticPage = staticPages[currentRoute];
-  const isHomeRoute = !isIssuesArchiveRoute && !currentStaticPage;
+  const isAdminRoute = currentRoute === '#/admin';
+  const isHomeRoute = !isIssuesArchiveRoute && !currentStaticPage && !isAdminRoute;
+  const nextIssueNumber = issues.reduce((highestNumber, issue) => {
+  const issueNumber = Number(issue.issueNumber) || 0;
+  return Math.max(highestNumber, issueNumber);
+}, 0) + 1;
+  
+  
 
   useEffect(() => {
     let frameId = null;
@@ -407,8 +744,6 @@ function App() {
         </a>
 
         <nav className="nav-links" aria-label="Site links">
-          <a href="#issues">Issues</a>
-          <a href="#about">About</a>
           <a className="archive-nav-link" href="#/issues">Archive</a>
           <a className="nav-button" href="#subscribe">Subscribe</a>
         </nav>
@@ -453,6 +788,10 @@ function App() {
       {currentStaticPage && (
         <StaticPage page={currentStaticPage} />
       )}
+
+      {isAdminRoute && (
+  <AdminPage nextIssueNumber={nextIssueNumber} />
+)}
 
       {isHomeRoute && (
         <>

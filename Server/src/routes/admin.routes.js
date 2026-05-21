@@ -1,9 +1,19 @@
 import express from 'express';
-import { createAdminIssue } from '../controllers/admin.controller.js';
+import {
+  createAdminIssue,
+  getAdminIssue,
+  listAdminIssues,
+  updateAdminIssue,
+} from '../controllers/admin.controller.js';
 import { requireAdminKey } from '../middleware/requireAdminKey.js';
 
 const router = express.Router();
 
-router.post('/issues', requireAdminKey, createAdminIssue);
+router.use(requireAdminKey);
+
+router.get('/issues', listAdminIssues);
+router.get('/issues/:id', getAdminIssue);
+router.post('/issues', createAdminIssue);
+router.put('/issues/:id', updateAdminIssue);
 
 export default router;
