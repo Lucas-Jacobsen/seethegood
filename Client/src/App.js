@@ -166,6 +166,7 @@ function AdminPage({ nextIssueNumber }) {
   const [adminMessage, setAdminMessage] = useState('');
   const [adminError, setAdminError] = useState('');
   const [isSavingIssue, setIsSavingIssue] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const isEditing = Boolean(selectedIssueId);
 
@@ -186,6 +187,7 @@ function AdminPage({ nextIssueNumber }) {
     setBodyHtml('');
     setAdminMessage('');
     setAdminError('');
+    setShowPreview(false);
   };
 
   const loadDrafts = async () => {
@@ -255,6 +257,7 @@ function AdminPage({ nextIssueNumber }) {
       setCoverImageUrl(issue.coverImageUrl || '');
       setStatus(issue.status || 'DRAFT');
       setBodyHtml(issue.bodyHtml || '');
+      setShowPreview(false);
       setAdminMessage(`Loaded draft: ${issue.title}`);
     } catch (error) {
       setAdminError(error.message || 'Could not load issue.');
@@ -344,7 +347,7 @@ function AdminPage({ nextIssueNumber }) {
         <p className="eyebrow">Admin</p>
         <h1>{isEditing ? 'Edit Draft' : 'Create Issue'}</h1>
         <p className="admin-description">
-          Create a draft or published See the Good issue. Load drafts to continue editing before publishing.
+          Create, preview, save, or publish a See the Good issue.
         </p>
 
         <div className="admin-draft-tools">
@@ -464,15 +467,56 @@ function AdminPage({ nextIssueNumber }) {
             />
           </label>
 
-          <button type="submit" disabled={isSavingIssue}>
-            {isSavingIssue
-              ? isEditing ? 'Updating...' : 'Creating...'
-              : isEditing ? 'Update Issue' : 'Create Issue'}
-          </button>
+          <div className="admin-action-row">
+            <button type="submit" disabled={isSavingIssue}>
+              {isSavingIssue
+                ? isEditing ? 'Updating...' : 'Creating...'
+                : isEditing ? 'Update Issue' : 'Create Issue'}
+            </button>
+
+            <button
+              className="admin-secondary-button"
+              type="button"
+              onClick={() => setShowPreview((current) => !current)}
+            >
+              {showPreview ? 'Hide Preview' : 'Preview Issue'}
+            </button>
+          </div>
         </form>
 
         {adminMessage && <p className="success-message">{adminMessage}</p>}
         {adminError && <p className="error-message">{adminError}</p>}
+
+        {showPreview && (
+          <div className="admin-preview">
+            <div className="admin-preview-header">
+              <p className="eyebrow">Preview</p>
+              <span>{status}</span>
+            </div>
+
+            <article className="issue-reader-card admin-preview-card">
+              <p className="issue-reader-label">
+                {issueNumber ? `Issue ${issueNumber}` : 'Issue Preview'}
+              </p>
+
+              <h2>{title || 'Untitled Issue'}</h2>
+
+              {excerpt && (
+                <p className="issue-reader-excerpt">{excerpt}</p>
+              )}
+
+              <div className="issue-reader-body">
+                {bodyHtml ? (
+                  <div dangerouslySetInnerHTML={{ __html: bodyHtml }} />
+                ) : (
+                  <p className="admin-empty-preview">
+                    Add body HTML to preview the newsletter content.
+                  </p>
+                )}
+              </div>
+            </article>
+          </div>
+        )}
       </div>
     </section>
   );
