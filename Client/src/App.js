@@ -168,6 +168,8 @@ function AdminPage({ nextIssueNumber }) {
   const [isSavingIssue, setIsSavingIssue] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
+  const [isSendingSubscribers, setIsSendingSubscribers] = useState(false);
+
 
 
   const isEditing = Boolean(selectedIssueId);
@@ -381,6 +383,65 @@ const handleSendTestIssueEmail = async () => {
     setIsSendingTestEmail(false);
   }
 };
+const handleSendIssueToSubscribers = async () => {
+  setAdminMessage('');
+  setAdminError('');
+
+  if (!adminKey.trim()) {
+    setAdminError('Admin key is required to send to subscribers.');
+    return;
+  }
+
+  if (!selectedIssueId) {
+    setAdminError('Save or load an issue before sending to subscribers.');
+    return;
+  }
+
+  if (status !== 'PUBLISHED') {
+    setAdminError('Set status to Published, save the issue, then send to subscribers.');
+    return;
+  }
+
+  const confirmed = window.confirm(
+    'Send this issue to all active subscribers? Make sure you already sent yourself a test email.'
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  setIsSendingSubscribers(true);
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/email/send-issue/${selectedIssueId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-key': adminKey.trim(),
+      },
+      body: JSON.stringify({
+        confirmSend: true,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Could not send issue to subscribers.');
+    }
+
+    setAdminMessage(`Issue sent to ${data.sentCount} subscriber${data.sentCount === 1 ? '' : 's'}.`);
+    setStatus(data.issue?.status || 'SENT');
+
+    if (data.issue?.title) {
+      setTitle(data.issue.title);
+    }
+  } catch (error) {
+    setAdminError(error.message || 'Could not send issue to subscribers.');
+  } finally {
+    setIsSendingSubscribers(false);
+  }
+};
   return (
     <section className="admin-page">
       <div className="admin-card">
@@ -472,6 +533,8 @@ const handleSendTestIssueEmail = async () => {
               <select value={status} onChange={(event) => setStatus(event.target.value)}>
                 <option value="DRAFT">Draft</option>
                 <option value="PUBLISHED">Published</option>
+                <option value="SENT" disabled>Sent</option>
+
               </select>
             </label>
           </div>
@@ -506,8 +569,7 @@ const handleSendTestIssueEmail = async () => {
               rows={16}
             />
           </label>
-
-         <div className="admin-action-row">
+<div className="admin-action-row">
   <button type="submit" disabled={isSavingIssue}>
     {isSavingIssue
       ? isEditing ? 'Updating...' : 'Creating...'
@@ -529,6 +591,15 @@ const handleSendTestIssueEmail = async () => {
     disabled={isSendingTestEmail || !selectedIssueId}
   >
     {isSendingTestEmail ? 'Sending Test...' : 'Send Test Email'}
+  </button>
+
+  <button
+    className="admin-secondary-button"
+    type="button"
+    onClick={handleSendIssueToSubscribers}
+    disabled={isSendingSubscribers || !selectedIssueId || status !== 'PUBLISHED'}
+  >
+    {isSendingSubscribers ? 'Sending...' : 'Send to Subscribers'}
   </button>
 </div>
         </form>
