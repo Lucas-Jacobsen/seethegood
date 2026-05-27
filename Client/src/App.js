@@ -162,6 +162,7 @@ function AdminPage({ nextIssueNumber }) {
 
   const [drafts, setDrafts] = useState([]);
   const [draftsLoading, setDraftsLoading] = useState(false);
+  const [issueListLabel, setIssueListLabel] = useState('Drafts');
 
   const [adminMessage, setAdminMessage] = useState('');
   const [adminError, setAdminError] = useState('');
@@ -194,39 +195,54 @@ function AdminPage({ nextIssueNumber }) {
     setShowPreview(false);
   };
 
-  const loadDrafts = async () => {
-    setAdminMessage('');
-    setAdminError('');
+ const getIssueStatusLabel = (issueStatus) => {
+  if (issueStatus === 'PUBLISHED') {
+    return 'Published Issues';
+  }
 
-    if (!adminKey.trim()) {
-      setAdminError('Admin key is required to load drafts.');
-      return;
+  if (issueStatus === 'SENT') {
+    return 'Sent Issues';
+  }
+
+  return 'Drafts';
+};
+
+const loadAdminIssues = async (issueStatus = 'DRAFT') => {
+  setAdminMessage('');
+  setAdminError('');
+
+  if (!adminKey.trim()) {
+    setAdminError('Admin key is required to load issues.');
+    return;
+  }
+
+  const label = getIssueStatusLabel(issueStatus);
+
+  setDraftsLoading(true);
+  setIssueListLabel(label);
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/admin/issues?status=${issueStatus}`, {
+      method: 'GET',
+      headers: {
+        'x-admin-key': adminKey.trim(),
+      },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Could not load issues.');
     }
 
-    setDraftsLoading(true);
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/issues?status=DRAFT`, {
-        method: 'GET',
-        headers: {
-          'x-admin-key': adminKey.trim(),
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Could not load drafts.');
-      }
-
-      setDrafts(Array.isArray(data.issues) ? data.issues : []);
-      setAdminMessage('Drafts loaded.');
-    } catch (error) {
-      setAdminError(error.message || 'Could not load drafts.');
-    } finally {
-      setDraftsLoading(false);
-    }
-  };
+    setDrafts(Array.isArray(data.issues) ? data.issues : []);
+    setAdminMessage(`${label} loaded.`);
+  } catch (error) {
+    setAdminError(error.message || 'Could not load issues.');
+  } finally {
+    setDraftsLoading(false);
+  }
+};
 
   const loadIssueIntoForm = async (issueId) => {
     setAdminMessage('');
@@ -262,8 +278,7 @@ function AdminPage({ nextIssueNumber }) {
       setStatus(issue.status || 'DRAFT');
       setBodyHtml(issue.bodyHtml || '');
       setShowPreview(false);
-      setAdminMessage(`Loaded draft: ${issue.title}`);
-    } catch (error) {
+      setAdminMessage(`Loaded issue: ${issue.title}`);    } catch (error) {
       setAdminError(error.message || 'Could not load issue.');
     }
   };
@@ -335,9 +350,9 @@ function AdminPage({ nextIssueNumber }) {
         setBodyHtml(data.issue.bodyHtml || '');
       }
 
-      if (status === 'DRAFT') {
-        await loadDrafts();
-      }
+      if (data.issue?.status) {
+  await loadAdminIssues(data.issue.status);
+}
     } catch (error) {
       setAdminError(error.message || 'Could not save issue.');
     } finally {
@@ -446,8 +461,7 @@ const handleSendIssueToSubscribers = async () => {
     <section className="admin-page">
       <div className="admin-card">
         <p className="eyebrow">Admin</p>
-        <h1>{isEditing ? 'Edit Draft' : 'Create Issue'}</h1>
-        <p className="admin-description">
+        <h1>{isEditing ? 'Edit Issue' : 'Create Issue'}</h1>        <p className="admin-description">
           Create, preview, save, or publish a See the Good issue.
         </p>
 
@@ -463,20 +477,39 @@ const handleSendIssueToSubscribers = async () => {
             />
           </label>
 
-          <div className="admin-draft-actions">
-            <button type="button" onClick={loadDrafts} disabled={draftsLoading}>
-              {draftsLoading ? 'Loading Drafts...' : 'Load Drafts'}
-            </button>
+         <div className="admin-draft-actions">
+  <button
+    type="button"
+    onClick={() => loadAdminIssues('DRAFT')}
+    disabled={draftsLoading}
+  >
+    Load Drafts
+  </button>
 
-            <button type="button" onClick={resetForm}>
-              New Issue
-            </button>
-          </div>
+  <button
+    type="button"
+    onClick={() => loadAdminIssues('PUBLISHED')}
+    disabled={draftsLoading}
+  >
+    Load Published
+  </button>
+
+  <button
+    type="button"
+    onClick={() => loadAdminIssues('SENT')}
+    disabled={draftsLoading}
+  >
+    Load Sent
+  </button>
+
+  <button type="button" onClick={resetForm}>
+    New Issue
+  </button>
+</div>
 
           {drafts.length > 0 && (
             <div className="admin-draft-list">
-              <p>Drafts</p>
-
+            <p>{issueListLabel}</p>
               <div className="admin-draft-buttons">
                 {drafts.map((draft) => (
                   <button
