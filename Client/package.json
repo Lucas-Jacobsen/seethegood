@@ -1,6 +1,5 @@
 {
-  "homepage": "https://lucas-jacobsen.github.io/seethegood",
-  "name": "seethegood-client",
+"homepage": "https://seethegood.today",  "name": "seethegood-client",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
