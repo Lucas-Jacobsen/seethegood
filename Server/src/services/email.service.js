@@ -14,6 +14,10 @@ function getResendClient() {
   return resendClient;
 }
 
+function getApiPublicUrl() {
+  return (process.env.API_PUBLIC_URL || 'https://seethegood-api.onrender.com').replace(/\/$/, '');
+}
+
 function escapeHtml(value = '') {
   return String(value)
     .replaceAll('&', '&amp;')
@@ -38,6 +42,10 @@ function markdownFallbackToHtml(markdown = '') {
   return paragraphs || '<p>No issue body was provided.</p>';
 }
 
+function buildUnsubscribeUrl(subscriber) {
+  return `${getApiPublicUrl()}/api/unsubscribe/${subscriber.unsubscribeToken}`;
+}
+
 export async function sendEmail({ to, subject, html }) {
   const resend = getResendClient();
 
@@ -59,7 +67,7 @@ export async function sendEmail({ to, subject, html }) {
   return data;
 }
 
-export function buildIssueEmailHtml(issue) {
+export function buildIssueEmailHtml(issue, { subscriber, isTest = false } = {}) {
   const issueLabel = issue.issueNumber
     ? `Issue ${issue.issueNumber}`
     : 'See the Good';
@@ -75,6 +83,30 @@ export function buildIssueEmailHtml(issue) {
       />
     `
     : '';
+
+  const footerHtml = isTest
+    ? `
+      <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #7a6a57;">
+        This is a test email sent from the See the Good admin workflow.
+      </p>
+    `
+    : `
+      <p style="margin: 0 0 8px; font-size: 13px; line-height: 1.5; color: #7a6a57;">
+        You are receiving this because you subscribed to See the Good.
+      </p>
+
+      ${
+        subscriber?.unsubscribeToken
+          ? `
+            <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #7a6a57;">
+              <a href="${escapeAttribute(buildUnsubscribeUrl(subscriber))}" style="color: #7a6a57;">
+                Unsubscribe
+              </a>
+            </p>
+          `
+          : ''
+      }
+    `;
 
   return `
     <!doctype html>
@@ -104,12 +136,25 @@ export function buildIssueEmailHtml(issue) {
 
             <hr style="border: 0; border-top: 1px solid #eadfce; margin: 32px 0 20px;" />
 
-            <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #7a6a57;">
-              This is a test email sent from the See the Good admin workflow.
-            </p>
+            ${footerHtml}
           </div>
         </div>
       </body>
     </html>
   `;
+}
+
+export async function sendIssueEmailToSubscriber({ issue, subscriber }) {
+  const subject = issue.issueNumber
+    ? `See the Good Issue ${issue.issueNumber}: ${issue.title}`
+    : `See the Good: ${issue.title}`;
+
+  return sendEmail({
+    to: subscriber.email,
+    subject,
+    html: buildIssueEmailHtml(issue, {
+      subscriber,
+      isTest: false,
+    }),
+  });
 }

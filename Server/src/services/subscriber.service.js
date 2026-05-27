@@ -39,3 +39,14 @@ export async function getSubscribers() {
     },
   });
 }
+
+export async function getActiveSubscribers() {
+  return prisma.subscriber.findMany({
+    where: {
+      status: 'ACTIVE',
+    },
+    orderBy: {
+      createdAt: 'asc',
+    },
+  });
+}

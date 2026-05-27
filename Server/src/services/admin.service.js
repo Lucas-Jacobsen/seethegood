@@ -159,3 +159,27 @@ export async function updateIssue(
     },
   });
 }
+export async function markIssueAsSent(id) {
+  const existingIssue = await prisma.issue.findUnique({
+    where: {
+      id,
+    },
+  });
+
+  if (!existingIssue) {
+    return null;
+  }
+
+  const now = new Date();
+
+  return prisma.issue.update({
+    where: {
+      id,
+    },
+    data: {
+      status: 'SENT',
+      sentAt: now,
+      publishedAt: existingIssue.publishedAt || now,
+    },
+  });
+}

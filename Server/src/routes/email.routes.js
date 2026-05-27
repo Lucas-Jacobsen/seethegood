@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   sendIssueTestEmail,
+  sendIssueToSubscribers,
   sendTestEmail,
 } from '../controllers/email.controller.js';
 import { requireAdminKey } from '../middleware/requireAdminKey.js';
@@ -11,5 +12,6 @@ router.use(requireAdminKey);
 
 router.post('/test', sendTestEmail);
 router.post('/test-issue/:id', sendIssueTestEmail);
+router.post('/send-issue/:id', sendIssueToSubscribers);
 
 export default router;
