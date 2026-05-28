@@ -31,6 +31,29 @@ function escapeAttribute(value = '') {
   return escapeHtml(value);
 }
 
+function htmlToPlainText(html = '') {
+  return String(html)
+    .replace(/<style[^>]*>.*?<\/style>/gis, '')
+    .replace(/<script[^>]*>.*?<\/script>/gis, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '- ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n\s+\n/g, '\n\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function markdownFallbackToHtml(markdown = '') {
   const paragraphs = markdown
     .split('\n')
@@ -46,16 +69,17 @@ function buildUnsubscribeUrl(subscriber) {
   return `${getApiPublicUrl()}/api/unsubscribe/${subscriber.unsubscribeToken}`;
 }
 
-export async function sendEmail({ to, subject, html }) {
+export async function sendEmail({ to, subject, html, text }) {
   const resend = getResendClient();
 
   const recipients = Array.isArray(to) ? to : [to];
 
   const { data, error } = await resend.emails.send({
-    from: process.env.EMAIL_FROM || 'See the Good <onboarding@resend.dev>',
+    from: process.env.EMAIL_FROM || 'See the Good <read@seethegood.today>',
     to: recipients,
     subject,
     html,
+    text: text || htmlToPlainText(html),
   });
 
   if (error) {
@@ -144,6 +168,38 @@ export function buildIssueEmailHtml(issue, { subscriber, isTest = false } = {}) 
   `;
 }
 
+export function buildIssueEmailText(issue, { subscriber, isTest = false } = {}) {
+  const issueLabel = issue.issueNumber
+    ? `Issue ${issue.issueNumber}`
+    : 'See the Good';
+
+  const issueBodyText = issue.bodyHtml
+    ? htmlToPlainText(issue.bodyHtml)
+    : issue.bodyMarkdown || 'No issue body was provided.';
+
+  const footerText = isTest
+    ? 'This is a test email sent from the See the Good admin workflow.'
+    : subscriber?.unsubscribeToken
+      ? `You are receiving this because you subscribed to See the Good.\n\nUnsubscribe: ${buildUnsubscribeUrl(subscriber)}`
+      : 'You are receiving this because you subscribed to See the Good.';
+
+  return [
+    issueLabel,
+    '',
+    issue.title,
+    '',
+    issue.excerpt || '',
+    '',
+    issueBodyText,
+    '',
+    footerText,
+  ]
+    .filter((line) => line !== null && line !== undefined)
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export async function sendIssueEmailToSubscriber({ issue, subscriber }) {
   const subject = issue.issueNumber
     ? `See the Good Issue ${issue.issueNumber}: ${issue.title}`
@@ -153,6 +209,10 @@ export async function sendIssueEmailToSubscriber({ issue, subscriber }) {
     to: subscriber.email,
     subject,
     html: buildIssueEmailHtml(issue, {
+      subscriber,
+      isTest: false,
+    }),
+    text: buildIssueEmailText(issue, {
       subscriber,
       isTest: false,
     }),
