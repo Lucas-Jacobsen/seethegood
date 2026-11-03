@@ -1,8 +1,12 @@
 import express from 'express';
-import { unsubscribe } from '../controllers/unsubscribe.controller.js';
+import {
+  showUnsubscribeConfirmation,
+  unsubscribe,
+} from '../controllers/unsubscribe.controller.js';
 
 const router = express.Router();
 
-router.get('/:token', unsubscribe);
+router.get('/:token', showUnsubscribeConfirmation);
+router.post('/:token', unsubscribe);
 
 export default router;
