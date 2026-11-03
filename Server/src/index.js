@@ -53,20 +53,3 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`See the Good API running on http://localhost:${PORT}`);
 });
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-];
-
-app.use(cors({
-  origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-      return;
-    }
-
-    callback(new Error('Not allowed by CORS'));
-  },
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type'],
-}));
