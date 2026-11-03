@@ -1032,18 +1032,141 @@ function App() {
               )}
             </div>
 
-            <div className="hero-art" aria-hidden="true">
-              <div className="hero-sun" />
-              <div className="hero-cloud hero-cloud-one" />
-              <div className="hero-cloud hero-cloud-two" />
-              <div className="hero-hill hero-hill-back" />
-              <div className="hero-hill hero-hill-front" />
-              <div className="hero-path" />
-              <div className="hero-leaf hero-leaf-one" />
-              <div className="hero-leaf hero-leaf-two" />
-              <div className="hero-flower hero-flower-one" />
-              <div className="hero-flower hero-flower-two" />
-            </div>
+           
+<div className="hero-art" aria-hidden="true">
+  <div className="hero-sun" />
+  <div className="hero-cloud hero-cloud-one" />
+  <div className="hero-cloud hero-cloud-two" />
+
+  <svg
+    className="hero-landscape"
+    viewBox="0 0 600 560"
+    preserveAspectRatio="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    {/* Rolling hills */}
+    <path
+      d="M0 405 C135 326 300 330 410 347
+         C505 360 560 382 600 405
+         L600 560 H0 Z"
+      fill="#B7C3A8"
+    />
+
+    <path
+      d="M0 465 C140 388 320 405 440 426
+         C515 439 565 468 600 488
+         L600 560 H0 Z"
+      fill="#8FA68D"
+    />
+
+    {/* Smooth winding walking trail */}
+    <path
+      d="M326 358
+         C321 388 288 412 301 446
+         C313 478 365 516 411 560
+         H220
+         C267 507 290 477 283 448
+         C272 411 311 383 316 358
+         Z"
+      fill="#FFF5E3"
+    />
+
+    {/* Left tree: trunk */}
+    <path
+      d="M105 506 Q102 476 104 443"
+      stroke="#315F4F"
+      strokeWidth="10"
+      fill="none"
+      strokeLinecap="round"
+    />
+
+    {/* Left tree: rounded canopy */}
+    <ellipse cx="104" cy="427" rx="42" ry="34" fill="#477967" />
+    <circle cx="79" cy="437" r="27" fill="#477967" />
+    <circle cx="128" cy="433" r="29" fill="#477967" />
+    <circle cx="101" cy="407" r="30" fill="#578774" />
+
+    {/* Smaller tree */}
+    <path
+      d="M182 529 Q184 493 181 466"
+      stroke="#315F4F"
+      strokeWidth="8"
+      fill="none"
+      strokeLinecap="round"
+    />
+    <ellipse cx="181" cy="461" rx="31" ry="25" fill="#386B59" />
+    <circle cx="164" cy="464" r="21" fill="#386B59" />
+    <circle cx="198" cy="464" r="22" fill="#386B59" />
+    <circle cx="181" cy="445" r="23" fill="#477967" />
+
+    {/* Right flower stems */}
+    <path
+      d="M501 515 Q497 481 502 459"
+      stroke="#315F4F"
+      strokeWidth="7"
+      fill="none"
+      strokeLinecap="round"
+    />
+    <path
+      d="M550 535 Q555 509 552 491"
+      stroke="#315F4F"
+      strokeWidth="6"
+      fill="none"
+      strokeLinecap="round"
+    />
+
+    {/* Flower leaves */}
+    <ellipse cx="486" cy="490" rx="17" ry="7"
+      transform="rotate(28 486 490)" fill="#477967" />
+    <ellipse cx="517" cy="489" rx="17" ry="7"
+      transform="rotate(-28 517 489)" fill="#477967" />
+    <ellipse cx="537" cy="516" rx="13" ry="6"
+      transform="rotate(30 537 516)" fill="#477967" />
+
+    {/* Large coral flower */}
+    <g fill="#F86F5C">
+      <ellipse cx="501" cy="442" rx="14" ry="22" />
+      <ellipse cx="501" cy="442" rx="14" ry="22"
+        transform="rotate(72 501 442)" />
+      <ellipse cx="501" cy="442" rx="14" ry="22"
+        transform="rotate(144 501 442)" />
+      <ellipse cx="501" cy="442" rx="14" ry="22"
+        transform="rotate(216 501 442)" />
+      <ellipse cx="501" cy="442" rx="14" ry="22"
+        transform="rotate(288 501 442)" />
+    </g>
+    <circle cx="501" cy="442" r="9" fill="#F5B547" />
+
+    {/* Small coral flower */}
+    <g fill="#F86F5C">
+      <ellipse cx="552" cy="480" rx="10" ry="16" />
+      <ellipse cx="552" cy="480" rx="10" ry="16"
+        transform="rotate(72 552 480)" />
+      <ellipse cx="552" cy="480" rx="10" ry="16"
+        transform="rotate(144 552 480)" />
+      <ellipse cx="552" cy="480" rx="10" ry="16"
+        transform="rotate(216 552 480)" />
+      <ellipse cx="552" cy="480" rx="10" ry="16"
+        transform="rotate(288 552 480)" />
+    </g>
+    <circle cx="552" cy="480" r="7" fill="#F5B547" />
+
+    {/* Subtle grass details */}
+    <g
+      fill="none"
+      stroke="#6F9378"
+      strokeWidth="3"
+      strokeLinecap="round"
+      opacity="0.65"
+    >
+      <path d="M42 525 l-6 -12 M42 525 l6 -15" />
+      <path d="M218 536 l-5 -11 M218 536 l8 -13" />
+      <path d="M460 543 l-5 -12 M460 543 l7 -10" />
+      <path d="M580 549 l-5 -11 M580 549 l7 -13" />
+    </g>
+  </svg>
+</div>
+
           </section>
 
         
