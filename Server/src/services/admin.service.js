@@ -125,6 +125,14 @@ export async function updateIssue(
     return null;
   }
 
+  // Content is snapshotted in the delivery batch. Reject changes once started.
+  const batch = await prisma.deliveryBatch.findUnique({ where: { issueId: id }, select: { id: true } });
+  if (batch) {
+    const error = new Error('Issue cannot be edited after subscriber delivery has started.');
+    error.statusCode = 409;
+    throw error;
+  }
+
   const normalizedStatus = status ? normalizeStatus(status) : existingIssue.status;
 
   const cleanBodyHtml =

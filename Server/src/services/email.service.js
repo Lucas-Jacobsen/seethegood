@@ -69,7 +69,7 @@ function buildUnsubscribeUrl(subscriber) {
   return `${getApiPublicUrl()}/api/unsubscribe/${subscriber.unsubscribeToken}`;
 }
 
-export async function sendEmail({ to, subject, html, text }) {
+export async function sendEmail({ to, subject, html, text, idempotencyKey }) {
   const resend = getResendClient();
 
   const recipients = Array.isArray(to) ? to : [to];
@@ -80,7 +80,7 @@ export async function sendEmail({ to, subject, html, text }) {
     subject,
     html,
     text: text || htmlToPlainText(html),
-  });
+  }, idempotencyKey ? { idempotencyKey } : undefined);
 
   if (error) {
     const sendError = new Error('Resend failed to send email.');
@@ -200,13 +200,14 @@ export function buildIssueEmailText(issue, { subscriber, isTest = false } = {}) 
     .trim();
 }
 
-export async function sendIssueEmailToSubscriber({ issue, subscriber }) {
+export function buildIssueEmailPayload(issue, subscriber) {
   const subject = issue.issueNumber
     ? `See the Good Issue ${issue.issueNumber}: ${issue.title}`
     : `See the Good: ${issue.title}`;
 
-  return sendEmail({
-    to: subscriber.email,
+  return {
+    from: process.env.EMAIL_FROM || 'See the Good <read@seethegood.today>',
+    to: [subscriber.email],
     subject,
     html: buildIssueEmailHtml(issue, {
       subscriber,
@@ -216,5 +217,26 @@ export async function sendIssueEmailToSubscriber({ issue, subscriber }) {
       subscriber,
       isTest: false,
     }),
+  };
+}
+
+/** Sends the exact persisted payload; never reconstruct it for a retry. */
+export async function sendPreparedIssueEmail({ payload, idempotencyKey }) {
+  const { data, error } = await getResendClient().emails.send(
+    payload, { idempotencyKey }
+  );
+  if (error) {
+    const sendError = new Error('Resend rejected the email request.');
+    sendError.details = error;
+    throw sendError;
+  }
+  return data;
+}
+
+/** Retained for test-send and older call sites. */
+export async function sendIssueEmailToSubscriber({ issue, subscriber, idempotencyKey }) {
+  return sendPreparedIssueEmail({
+    payload: buildIssueEmailPayload(issue, subscriber),
+    idempotencyKey,
   });
 }

@@ -15,6 +15,7 @@ model Subscriber {
   consentAt        DateTime         @default(now())
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
+  deliveries       EmailDelivery[]
 }
 
 enum SubscriberStatus {
@@ -38,6 +39,7 @@ model Issue {
   sentAt        DateTime?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+  deliveryBatch DeliveryBatch?
 }
 
 enum IssueStatus {
@@ -45,4 +47,47 @@ enum IssueStatus {
   PUBLISHED
   SENT
   ARCHIVED
+}
+
+// One immutable audience and issue snapshot per issue. Never re-enroll subscribers on retry.
+model DeliveryBatch {
+  id            String          @id @default(uuid())
+  issueId       String          @unique
+  issue         Issue           @relation(fields: [issueId], references: [id], onDelete: Restrict)
+  issueSnapshot Json
+  createdAt     DateTime        @default(now())
+  completedAt   DateTime?
+  deliveries    EmailDelivery[]
+}
+
+model EmailDelivery {
+  id                String         @id @default(uuid())
+  batchId           String
+  batch             DeliveryBatch  @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  subscriberId      String
+  subscriber        Subscriber     @relation(fields: [subscriberId], references: [id], onDelete: Restrict)
+  email             String
+  status            DeliveryStatus @default(PENDING)
+  idempotencyKey    String         @unique
+  emailPayload      Json
+  providerMessageId String?
+  lastError         String?
+  attempts          Int            @default(0)
+  startedAt         DateTime?
+  firstAttemptAt    DateTime?
+  sentAt            DateTime?
+  updatedAt         DateTime       @updatedAt
+  createdAt         DateTime       @default(now())
+
+  @@unique([batchId, subscriberId])
+  @@index([batchId, status])
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED
+  UNKNOWN
+  SKIPPED
 }

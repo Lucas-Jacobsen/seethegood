@@ -1,13 +1,11 @@
 import {
   getAdminIssueById,
-  markIssueAsSent,
 } from '../services/admin.service.js';
-import { getActiveSubscribers } from '../services/subscriber.service.js';
 import {
   buildIssueEmailHtml,
   sendEmail,
-  sendIssueEmailToSubscriber,
 } from '../services/email.service.js';
+import { getDeliverySummary, processDeliveryChunk, startDeliveryBatch } from '../services/delivery.service.js';
 
 export async function sendTestEmail(req, res, next) {
   try {
@@ -92,91 +90,32 @@ export async function sendIssueTestEmail(req, res, next) {
 
 export async function sendIssueToSubscribers(req, res, next) {
   try {
-    const { id } = req.params;
-    const { confirmSend } = req.body || {};
-
-    if (confirmSend !== true) {
-      return res.status(400).json({
-        message: 'Subscriber send must be explicitly confirmed.',
-      });
+    if (req.body?.confirmSend !== true) {
+      return res.status(400).json({ message: 'Explicit confirmSend: true is required.' });
     }
-
-    const issue = await getAdminIssueById(id);
-
-    if (!issue) {
-      return res.status(404).json({
-        message: 'Issue not found.',
-      });
+    if (req.body?.retryFailed !== undefined && typeof req.body.retryFailed !== 'boolean') {
+      return res.status(400).json({ message: 'retryFailed must be boolean.' });
     }
-
-    if (issue.status !== 'PUBLISHED') {
-      return res.status(400).json({
-        message: 'Only published issues can be sent to subscribers.',
-      });
-    }
-
-    if (!issue.bodyHtml && !issue.bodyMarkdown) {
-      return res.status(400).json({
-        message: 'This issue does not have body content to send.',
-      });
-    }
-
-    const subscribers = await getActiveSubscribers();
-
-    if (subscribers.length === 0) {
-      return res.status(400).json({
-        message: 'There are no active subscribers to email.',
-      });
-    }
-
-    const sent = [];
-    const failed = [];
-
-    for (const subscriber of subscribers) {
-      try {
-        const data = await sendIssueEmailToSubscriber({
-          issue,
-          subscriber,
-        });
-
-        sent.push({
-          email: subscriber.email,
-          id: data?.id,
-        });
-      } catch (error) {
-        console.error(`Failed to send issue ${issue.id} to ${subscriber.email}:`, error);
-
-        failed.push({
-          email: subscriber.email,
-          message: error.details?.message || error.message || 'Unknown send error.',
-        });
-      }
-    }
-
-    if (failed.length > 0) {
-      return res.status(500).json({
-        message: 'Some subscriber emails failed. Issue was not marked as sent.',
-        sentCount: sent.length,
-        failedCount: failed.length,
-        failed,
-      });
-    }
-
-    const updatedIssue = await markIssueAsSent(issue.id);
-
+    const issue = await getAdminIssueById(req.params.id);
+    if (!issue) return res.status(404).json({ message: 'Issue not found.' });
+    await startDeliveryBatch(issue);
+    const result = await processDeliveryChunk(issue.id, { retryFailed: req.body.retryFailed === true });
     return res.status(200).json({
-      message: 'Issue sent to subscribers successfully.',
-      sentCount: sent.length,
-      issue: {
-        id: updatedIssue.id,
-        title: updatedIssue.title,
-        status: updatedIssue.status,
-        issueNumber: updatedIssue.issueNumber,
-        sentAt: updatedIssue.sentAt,
-      },
+      message: 'Processed a delivery chunk. Repeat to process remaining pending recipients.',
+      ...result,
     });
   } catch (error) {
-    console.error('Unexpected subscriber send error:', error);
+    if (error.statusCode) return res.status(error.statusCode).json({ message: error.message });
+    next(error);
+  }
+}
+
+export async function getIssueDeliveryStatus(req, res, next) {
+  try {
+    const summary = await getDeliverySummary(req.params.id);
+    if (!summary) return res.status(404).json({ message: 'No delivery batch found.' });
+    return res.status(200).json({ summary });
+  } catch (error) {
     next(error);
   }
 }
