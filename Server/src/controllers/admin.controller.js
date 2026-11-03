@@ -40,6 +40,9 @@ export async function createAdminIssue(req, res, next) {
       issue,
     });
   } catch (error) {
+    if (error.statusCode === 409) {
+      return res.status(409).json({ message: error.message });
+    }
     if (error.code === 'P2002') {
       return res.status(409).json({
         message: 'An issue with this slug already exists.',
@@ -101,6 +104,9 @@ export async function updateAdminIssue(req, res, next) {
       issue,
     });
   } catch (error) {
+    if (error.statusCode === 409) {
+      return res.status(409).json({ message: error.message });
+    }
     if (error.code === 'P2002') {
       return res.status(409).json({
         message: 'An issue with this slug already exists.',

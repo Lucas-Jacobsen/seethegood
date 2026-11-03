@@ -401,58 +401,61 @@ const handleSendTestIssueEmail = async () => {
 const handleSendIssueToSubscribers = async () => {
   setAdminMessage('');
   setAdminError('');
-
-  if (!adminKey.trim()) {
-    setAdminError('Admin key is required to send to subscribers.');
+  if (!adminKey.trim() || !selectedIssueId) {
+    setAdminError('Select an issue and enter your admin key.');
     return;
   }
-
-  if (!selectedIssueId) {
-    setAdminError('Save or load an issue before sending to subscribers.');
-    return;
-  }
-
   if (status !== 'PUBLISHED') {
-    setAdminError('Set status to Published, save the issue, then send to subscribers.');
+    setAdminError('Only published, not-yet-completed issues can be sent.');
     return;
   }
-
-  const confirmed = window.confirm(
-    'Send this issue to all active subscribers? Make sure you already sent yourself a test email.'
-  );
-
-  if (!confirmed) {
+  const headers = { 'Content-Type': 'application/json', 'x-admin-key': adminKey.trim() };
+  let retryFailed = false;
+  try {
+    const existing = await fetch(`${API_BASE_URL}/api/email/delivery-status/${selectedIssueId}`, { headers });
+    if (existing.ok) {
+      const { summary } = await existing.json();
+      if (summary.counts.UNKNOWN > 0) {
+        setAdminError(`${summary.counts.UNKNOWN} deliveries have uncertain outcomes. Review Resend before retrying; these will not automatically resend.`);
+        return;
+      }
+      if (summary.counts.FAILED && !summary.counts.PENDING) {
+        retryFailed = window.confirm(`${summary.counts.FAILED} email requests were rejected by Resend. Retry these failed recipients?`);
+        if (!retryFailed) return;
+      }
+    } else if (existing.status !== 404) {
+      throw new Error('Could not retrieve delivery status.');
+    }
+    if (!window.confirm('Send/resume this published issue? The audience will be frozen when the first batch begins.')) return;
+  } catch (error) {
+    setAdminError(error.message || 'Unable to check delivery status.');
     return;
   }
 
   setIsSendingSubscribers(true);
-
   try {
-    const response = await fetch(`${API_BASE_URL}/api/email/send-issue/${selectedIssueId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-key': adminKey.trim(),
-      },
-      body: JSON.stringify({
-        confirmSend: true,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Could not send issue to subscribers.');
+    let summary;
+    for (let n = 0; n < 100; n++) {
+      const response = await fetch(`${API_BASE_URL}/api/email/send-issue/${selectedIssueId}`, {
+        method: 'POST', headers,
+        body: JSON.stringify({ confirmSend: true, retryFailed }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Could not process newsletter deliveries.');
+      summary = data.summary;
+      setAdminMessage(`Delivery progress: ${summary.counts.SENT}/${summary.total} accepted by Resend; ${summary.counts.PENDING} pending.`);
+      if (summary.counts.PENDING === 0 || data.processed === 0) break;
     }
-
-    setAdminMessage(`Issue sent to ${data.sentCount} subscriber${data.sentCount === 1 ? '' : 's'}.`);
-    setStatus(data.issue?.status || 'SENT');
-
-    if (data.issue?.title) {
-      setTitle(data.issue.title);
+    if (summary) {
+      if (summary.completedAt) {
+        setStatus('SENT');
+        setAdminMessage(`Newsletter complete: ${summary.counts.SENT} accepted, ${summary.counts.SKIPPED} skipped.`);
+      } else {
+        setAdminError(`Send incomplete: ${summary.counts.FAILED} failed, ${summary.counts.UNKNOWN} unknown, ${summary.counts.SENDING} in progress. Review delivery status before retrying.`);
+      }
     }
   } catch (error) {
-    setAdminError(error.message || 'Could not send issue to subscribers.');
+    setAdminError(`${error.message || 'Send interrupted.'} Progress is recorded; retry from this dashboard after checking status.`);
   } finally {
     setIsSendingSubscribers(false);
   }
